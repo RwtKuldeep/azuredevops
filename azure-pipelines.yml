@@ -1,0 +1,35 @@
+trigger:
+  - main  # Triggers a new build automatically whenever you push code to the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Uses a clean, pre-configured Microsoft-hosted Linux runner
+
+steps:
+# Step 1: Set the desired Python version on the build agent
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.10'
+  displayName: 'Use Python 3.10'
+
+# Step 2: Create a temporary virtual environment and install dependencies cleanly
+- script: |
+    python -m venv antenv
+    source antenv/bin/activate
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies in virtual environment'
+
+# Step 3: Archive (zip) all project files so they are ready for deployment
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+    replaceExistingArchive: true
+  displayName: 'Archive project files into a zip artifact'
+
+# Step 4: Publish the zip package as a pipeline artifact (named 'drop')
+- publish: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+    artifact: 'drop'
+  displayName: 'Publish pipeline artifact'
